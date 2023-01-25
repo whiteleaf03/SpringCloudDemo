@@ -12,6 +12,7 @@
         <module>NacosProvider1</module>
         <module>NacosProvider2</module>
         <module>NacosConsumer1</module>
+        <module>Gateway</module>
     </modules>
 
     <properties>

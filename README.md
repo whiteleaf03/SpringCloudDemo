@@ -1,3 +1,5 @@
+学习视频:https://www.bilibili.com/video/BV1LQ4y127n4
+
 # Maven配置
 
 ## 父工程
@@ -83,7 +85,7 @@ public class ServerApplication {
 
 ​			github下载压缩包，解压后在bin文件夹下输入
 
-```
+```bash
 startup.cmd -m standalone
 ```
 
@@ -237,12 +239,83 @@ No Feign Client for loadBalancing defined. Did you forget to include spring-clou
 </dependency>
 ```
 
-
-
 # 流量控制
 
 ## Sentinel
 
+​	官方文档：https://sentinelguard.io/zh-cn/docs/introduction.html
+
+​	安装方式：https://github.com/alibaba/Sentinel
+
+​		github下载jar包，使用命令启动Sentinel控制台
+
+​		其中 `-Dserver.port=8080` 用于指定 Sentinel 控制台端口为 `8080`
+
+​		从 Sentinel 1.6.0 起，Sentinel 控制台引入基本的**登录**功能，默认用户名和密码都是 `sentinel`
+
+```bash
+java -Dserver.port=8080 -Dcsp.sentinel.dashboard.server=localhost:8080 -Dproject.name=sentinel-dashboard -jar sentinel-dashboard.jar
+```
+
+​	pom依赖
+
+​		黑马程序员教程视频 https://www.bilibili.com/video/BV1R7411774f?p=20
+
+```xml
+<dependency>
+    <groupId>com.alibaba.csp</groupId>
+    <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
+</dependency>
+```
+
+​		官方文档（版本1.8.6）
+
+```xml
+<dependency>
+    <groupId>com.alibaba.csp</groupId>
+    <artifactId>sentinel-core</artifactId>
+    <version>1.8.6</version>
+</dependency>
+```
+
+**坑**：不知道为啥 按视频依赖可以在控制台中看到自己的服务 而按官方文档走看不到
+
+
+
 # 网关
 
-## SpringCloudGateway
+## Gateway
+
+​	pom依赖
+
+```xml
+<dependency>
+	<groupId>org.springframework.cloud</groupId>
+	<artifactId>spring-cloud-starter-gateway</artifactId>
+</dependency>
+```
+
+​	**注：除此之外还需引入注册中心依赖（网关本身也是微服务，需注册到注册中心）**
+
+​	**坑：还需引入Feign相关依赖 同上 需将Ribbon除外 引入SpringCloudLoadbalancer**
+
+​	Springboot配置文件
+
+```yml
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: NacosConsumer # 路由id 在所有路由中唯一即可
+          uri: lb://NacosConsumer # 路由目的地 支持http和lb lb为负载均衡 http为固定地址
+          predicates: # 路由断言 判断请求是否符合路由规则的条件	
+            - Path=/message/** # 按路径匹配 要求/message开头
+            - After=2021-07-04T19:16:43.338+08:00[Asia/Shanghai] # 在该时间之后 还有Before 之前 Between 之间
+            - Cookie=chocolate # 必须包含某些cookie
+            - Header=X-Request-Id # 必须包含某些header
+            - Host=**.example.org # 必须访问某域名(host)
+            - Method=GET POST # 请求必须是制定方式
+            - Query=name # 请求必须包含指定参数
+            - RemoteAddr=192.168.0.1/24 # 请求者的ip必须是指定范围
+```
+
