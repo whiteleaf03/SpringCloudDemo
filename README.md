@@ -318,9 +318,9 @@ java -Dserver.port=8080 -Dcsp.sentinel.dashboard.server=localhost:8080 -Dproject
 
 ​	**注：除此之外还需引入注册中心依赖（网关本身也是微服务，需注册到注册中心）**
 
-​	**坑：还需引入Feign相关依赖 同上 需将Ribbon除外 引入SpringCloudLoadbalancer**
+​	**坑：还需引入Feign相关依赖 同上 需将Ribbon除外 并引入SpringCloudLoadbalancer**
 
-​	Springboot配置文件
+​	**通过Springboot配置文件 配置路由 断言 过滤器**
 
 ```yml
 spring:
@@ -338,5 +338,90 @@ spring:
             - Method=GET POST # 请求必须是制定方式
             - Query=name # 请求必须包含指定参数
             - RemoteAddr=192.168.0.1/24 # 请求者的ip必须是指定范围
+          filters: # 针对单个路由
+    		
+       default-filters: # 全局过滤器 对所有请求都用作用
+        - AddRequestHeader=Check, SpringCloudGateway # 请求头中添加 Check=SpringCloudGateway
 ```
+
+路由断言示例参考官网文档：https://docs.spring.io/spring-cloud-gateway/docs/current/reference/html/#gateway-request-predicates-factories
+
+路由过滤器示例参考官网文档：https://docs.spring.io/spring-cloud-gateway/docs/current/reference/html/#gatewayfilter-factories
+
+​	**全局过滤器 GlobalFilter** 对进入当前网关的所有请求起效
+
+```java
+/**
+ * 全局过滤器 以身份认证为例
+ * 需继承GlobalFilter接口
+ */
+@Component
+@Order(-1) // 在过滤器链中的位置 除注解外可继承Order接口实现
+public class AuthorizeFilter implements GlobalFilter {
+    /**
+     * 全局过滤器 判断是否含有authorization参数且参数值为admin
+     * 是 放行给下一个过滤器
+     * 否 拦截并返回401
+     * @param exchange 请求上下文 可获取Request Response等信息
+     * @param chain    过滤器链中的下一个过滤器
+     * @return 标志当前过滤器业务结束
+     */
+    @Override
+    public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
+        ServerHttpRequest request = exchange.getRequest();
+        MultiValueMap<String, String> params = request.getQueryParams();
+        String auth = params.getFirst("authorization");
+        if ("admin".equals(auth)) {
+            return chain.filter(exchange);
+        } else {
+            exchange.getResponse().setStatusCode(HttpStatus.UNAUTHORIZED);
+            return exchange.getResponse().setComplete();
+        }
+    }
+}
+```
+
+​		**三个不同过滤器能串联的原因：**
+
+​			默认过滤器和路由过滤器在底层中属于GatewayFilter类
+
+​			GatewayFilterAdapter类实现了GatewayFilter接口，并含有GlobalFilter类型的成员变量
+
+​			默认过滤器  路由过滤器  全局过滤器基于此进行串联
+
+​		**过滤器执行顺序：**
+
+​			每个过滤器都必须指定一个int类型的Order的值，Order值越小，优先级越高，执行顺序越靠前
+
+​			全局过滤器Order的值由开发者决定
+
+​			默认过滤器和路由过滤器的Order由Spring指定，默认按配置文件中的声明顺序从1递增
+
+​			当过滤器值一样时，按照  **默认过滤器 > 路由过滤器 > 全局过滤器**  的顺序执行
+
+​	**跨域配置**
+
+```yaml
+spring:
+  cloud:
+	gateway:
+      globalcors: # 全局跨域处理
+        add-to-simple-url-handler-mapping: true # 解决options请求被拦截问题
+        cors-configurations:
+          '[/**]':
+            allowed-origins: # 允许哪些网站的跨域请求
+              - "http://localhost:8080"
+              - "http://www.whiteleaf03.cn"
+            allowed-methods: # 允许跨域的方式
+              - "GET"
+              - "POST"
+              - "DELETE"
+              - "PUT"
+              - "OPTIONS"
+            allowed-headers: "*" # 允许在请求头中携带的头信息
+            # allowed-credentials: true # 是否允许携带cookie 该项会报错并且在官方文档中并未找到该项
+            max-age: 360000 # 这次跨域检测的有效期
+```
+
+官方文档：https://docs.spring.io/spring-cloud-gateway/docs/current/reference/html/#cors-configuration
 
