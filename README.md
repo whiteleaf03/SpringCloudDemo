@@ -93,6 +93,27 @@ startup.cmd -m standalone
 
 ​			**坑：启动除8848端口外，还会占用9848 9849端口（与默认端口相差1000， 1001），如果这两个端口被占用，启动失败**
 
+​			开启HyperV后，端口被系统保留的解决方法 https://blog.csdn.net/crayon0/article/details/127444776
+
+​			管理员启动cmd
+
+```bash
+关闭网络
+net stop winnat
+net stop LanmanWorkstation
+net stop WlanSvc
+
+指定不允许被保留的端口
+netsh int ipv4 add excludedportrange protocol=tcp startport=8080 numberofports=4
+
+启动网络
+net start winnat
+net start LanmanWorkstation
+net start WlanSvc
+```
+
+​			注：在解除9849端口保留时 我的电脑提示：另一个程序正在使用此文件，进程无法访问。但端口并未被占用且nacos启动并无问题
+
 ​		pom依赖
 
 ```xml
