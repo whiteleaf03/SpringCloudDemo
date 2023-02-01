@@ -128,7 +128,7 @@ net start WlanSvc
 ```yaml
 spring:
   application:
-  	# 服务名
+    # 服务名
     name: NacosProvider
   cloud:
     nacos:
@@ -339,7 +339,6 @@ spring:
             - Query=name # 请求必须包含指定参数
             - RemoteAddr=192.168.0.1/24 # 请求者的ip必须是指定范围
           filters: # 针对单个路由
-    		
        default-filters: # 全局过滤器 对所有请求都用作用
         - AddRequestHeader=Check, SpringCloudGateway # 请求头中添加 Check=SpringCloudGateway
 ```
@@ -404,7 +403,7 @@ public class AuthorizeFilter implements GlobalFilter {
 ```yaml
 spring:
   cloud:
-	gateway:
+    gateway:
       globalcors: # 全局跨域处理
         add-to-simple-url-handler-mapping: true # 解决options请求被拦截问题
         cors-configurations:
