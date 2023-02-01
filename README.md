@@ -133,7 +133,7 @@ spring:
   cloud:
     nacos:
       discovery:
-      	# nacos注册中心地址
+        # nacos注册中心地址
         server-addr: localhost:8848
 ```
 
